@@ -9,7 +9,7 @@ app.use(cors())
 app.use(express.json())
 
  
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_user}:${process.env.DB_password}@cluster0.u69fsfj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -26,6 +26,49 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection
+
+    const userCollections = client.db("usersDB1").collection('users');
+
+    app.get('/users', async(req, res) => {
+        const result = await userCollections.find().toArray();
+        res.send(result)
+    })
+    app.get('/users/:id', async(req, res) => {
+        const id = req.params.id;
+        const query = {_id : new ObjectId(id)};
+        const result = await userCollections.findOne(query);
+        res.send(result)
+    })
+
+    app.post('/users', async(req, res) => {
+        const doc = req.body;
+        const result = await userCollections.insertOne(doc);
+        res.send(result)
+    })
+
+    app.put('/users/:id', async(req, res) => {
+        const id = req.params.id;
+        const query = {_id : new ObjectId(id)}
+        const options = { upsert: true };
+        const user = req.body;
+        const updateDoc = {
+            $set: {
+                name: user.name,
+                email: user.email,
+                address: user.address
+            }
+        }
+        const result = await userCollections.updateOne(query, updateDoc, options);
+        res.send(result)
+    })
+
+    app.delete('/users/:id', async(req, res) => {
+        const id = req.params.id;
+        const query = {_id: new ObjectId(id)}
+        const result = await userCollections.deleteOne(query);
+        res.send(result);
+    })
+
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
